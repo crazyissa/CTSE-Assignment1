@@ -1,16 +1,10 @@
 import Delivery from './models/Delivery.js';
-import { Server } from 'socket.io';
 
-let io; // To store the instance globally
+let io; // Store the instance globally
 
-export const setupSocket = (server) => {
-  io = new Server(server, {
-    cors: {
-      origin: 'http://localhost:5173', // Frontend URL
-      methods: ['GET', 'POST', 'PUT'],
-      credentials: true
-    },
-  });
+// Called from app.js with the already-created Socket.IO Server instance
+export const setupSocket = (ioInstance) => {
+  io = ioInstance;
 
   io.on('connection', (socket) => {
     console.log('🚀 WebSocket Connected:', socket.id);
@@ -33,16 +27,15 @@ export const setupSocket = (server) => {
 
         console.log(`📍 Driver location update for ${deliveryId}: ${lat}, ${lng}`);
 
-        // Update in database
         await Delivery.findByIdAndUpdate(deliveryId, {
           driverLocation: { lat, lng },
           lastLocationUpdate: new Date()
         });
 
-        // Broadcast to all clients tracking this delivery
-        io.to(`delivery-${deliveryId}`).emit('driverLocationUpdate', { 
-          deliveryId, 
-          lat, 
+        // Broadcast only to clients tracking this delivery
+        io.to(`delivery-${deliveryId}`).emit('driverLocationUpdate', {
+          deliveryId,
+          lat,
           lng,
           timestamp: new Date()
         });
@@ -51,7 +44,7 @@ export const setupSocket = (server) => {
       }
     });
 
-    // Update delivery status
+    // Update delivery status via socket
     socket.on('updateDeliveryStatus', async ({ deliveryId, status }) => {
       try {
         if (!deliveryId || !status) {
@@ -61,40 +54,37 @@ export const setupSocket = (server) => {
 
         console.log(`📝 Status update for ${deliveryId}: ${status}`);
 
-        // Update in database
-        await Delivery.findByIdAndUpdate(deliveryId, { 
+        await Delivery.findByIdAndUpdate(deliveryId, {
           status,
           statusUpdatedAt: new Date(),
-          ...(status === 'delivered' ? { deliveredAt: new Date() } : {} )
+          ...(status === 'delivered' ? { deliveredAt: new Date() } : {})
         });
 
-        // Broadcast to all clients tracking this delivery
-        io.to(`delivery-${deliveryId}`).emit('delivery-status-update', { 
-          deliveryId, 
+        io.to(`delivery-${deliveryId}`).emit('delivery-status-update', {
+          deliveryId,
           status,
-          timestamp: new Date() 
+          timestamp: new Date()
         });
       } catch (err) {
         console.error(`❌ Error updating delivery status for ${deliveryId}:`, err.message);
       }
     });
 
-    // Handle client request for delivery data
+    // Client requests delivery data
     socket.on('getDeliveryInfo', async ({ deliveryId }) => {
       try {
         if (!deliveryId) {
           console.warn('⚠️ Missing deliveryId in getDeliveryInfo');
           return;
         }
-        
+
         const delivery = await Delivery.findById(deliveryId);
         if (delivery) {
-          // Send back to requesting client only
           socket.emit('deliveryInfo', {
             deliveryId,
             data: delivery,
-            restaurantLocation: delivery.restaurantLocation,  // Assume it's in the DB
-            customerLocation: delivery.customerLocation,  // Assume it's in the DB
+            restaurantLocation: delivery.restaurantLocation,
+            customerLocation: delivery.customerLocation,
           });
         }
       } catch (err) {
@@ -102,10 +92,8 @@ export const setupSocket = (server) => {
       }
     });
 
-    // Handle error reporting from clients
     socket.on('reportError', ({ deliveryId, errorType, message }) => {
       console.error(`⚠️ Client error report for ${deliveryId}: ${errorType} - ${message}`);
-      // Here you could log to a database or monitoring system
     });
 
     socket.on('disconnect', () => {
@@ -114,7 +102,7 @@ export const setupSocket = (server) => {
   });
 };
 
-// Safe getter to use io anywhere
+// Safe getter for io — use in controllers
 export const getIO = () => {
   if (!io) {
     throw new Error('Socket.io not initialized!');
@@ -122,7 +110,6 @@ export const getIO = () => {
   return io;
 };
 
-// Use this in your API routes to emit events
 export const emitDeliveryUpdate = (deliveryId, event, data) => {
   if (!io) return;
   io.to(`delivery-${deliveryId}`).emit(event, { deliveryId, ...data });

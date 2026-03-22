@@ -120,43 +120,288 @@ npm run dev
 
 Open http://localhost:5173
 
-## API endpoints (high-level)
+## API Endpoints & Contract (OpenAPI)
 
-`auth_service`:
-- `POST /api/auth/register`
-- `POST /api/auth/login`
+### Auth Service (5001)
+- `POST /api/auth/register` - Register new user (customer/restaurant/delivery/admin)
+- `POST /api/auth/login` - Login for any user role
+- `GET /api/auth/users` - Get all users (admin only)
+- `DELETE /api/auth/users/:id` - Delete user (admin only)
+- `GET /api/auth/drivers` - Get all delivery drivers (admin/customer)
 
-`restaurant_service`:
-- `GET /api/restaurants`
-- `POST /api/restaurants` (restaurant + menu CRUD)
-- `GET /api/restaurants/search?query=...`
+### Restaurant Service (5000)
+- `GET /api/restaurants` - Get all restaurants (authenticated)
+- `GET /api/restaurants/:restaurantId/menu` - Get menu items for a restaurant
+- `POST /api/restaurants` - Create new restaurant (restaurant role, with image upload)
+- `PUT /api/restaurants/:restaurantId` - Update restaurant (restaurant role, with image)
+- `DELETE /api/restaurants/:restaurantId` - Delete restaurant (restaurant role)
+- `POST /api/restaurants/:restaurantId/menu` - Add menu item (restaurant role, with image)
+- `PUT /api/restaurants/:restaurantId/menu/:itemId` - Update menu item (restaurant role, with image)
+- `DELETE /api/restaurants/:restaurantId/menu/:itemId` - Delete menu item (restaurant role)
+- `PUT /api/restaurants/:restaurantId/availability` - Set restaurant availability (restaurant role)
+- `GET /api/restaurants/my` - Get my restaurants (restaurant role)
+- `GET /api/restaurants/search?query=...` - Search restaurants (authenticated)
+- `GET /api/restaurants/:restaurantId/orders` - Get orders for restaurant (restaurant role)
+- `PUT /api/restaurants/orders/:orderId/status` - Update order status (restaurant role)
+- `PUT /api/restaurants/verify/:id` - Verify restaurant (admin only)
+- `GET /api/restaurants/admin/all` - Get all restaurants (admin only)
 
-`order_service`:
-- `POST /api/orders`
-- `GET /api/orders/my-orders`
-- `PUT /api/orders/:id/status`
-- `DELETE /api/orders/:id`
+### Order Service (5005)
+- `POST /api/orders` - Place a new order (authenticated)
+- `GET /api/orders/my-orders` - Get user's orders (authenticated)
+- `GET /api/orders/:orderId` - Get order details by ID (authenticated)
+- `PUT /api/orders/:orderId/status` - Update order status (authenticated)
+- `PUT /api/orders/:orderId/edit` - Edit order (authenticated)
+- `GET /api/orders/:orderId/track` - Get order tracking info (authenticated)
+- `PUT /api/orders/:orderId/location` - Update order location (authenticated)
+- `GET /api/orders/restaurant/:restaurantId` - Get orders by restaurant (authenticated)
+- `DELETE /api/orders/:orderId` - Delete order (authenticated)
 
-`payment_service`:
-- `POST /api/payments/charge` (Stripe-style)
+### Payment Service (5004)
+- `POST /api/payments/test-checkout` - Test checkout endpoint
+- `POST /api/payments/create-intent` - Create Stripe payment intent
+- `POST /api/payments/confirm` - Confirm payment
+- `GET /api/payments/admin/transactions` - Get all transactions (admin)
+- `GET /api/payments/admin/transactions/filter` - Get filtered transactions (admin)
 
-`delivery_service`:
-- `POST /api/deliveries/checkout`
-- `GET /api/deliveries/:deliveryId`
+### Delivery Service (5006)
+- `POST /api/deliveries/checkout` - Create delivery for order (customer role)
+- `PUT /api/deliveries/:id/status` - Update delivery status (delivery role)
+- `GET /api/deliveries/assigned` - Get assigned delivery for driver (delivery role)
+- `GET /api/deliveries/my` - Get all deliveries for driver (delivery role)
+- `GET /api/deliveries/:id` - Get delivery by ID (admin/customer/delivery role)
 
-`admin_service`:
-- `GET /api/admin/restaurants`
-- `PUT /api/admin/verify-restaurant/:id`
-- `GET /api/admin/payments/transactions`
+### Admin Service (5050)
+- `GET /api/admin/users` - Get all users (admin only)
+- `PUT /api/admin/verify/:userId` - Verify user/restaurant (admin only)
+- `DELETE /api/admin/user/:userId` - Delete user (admin only)
+- `PUT /api/admin/verify-restaurant/:id` - Verify restaurant (admin only)
+- `GET /api/admin/restaurants` - Get all restaurants (admin only)
+- `GET /api/admin/payments/transactions` - Get all payment transactions (admin only)
+- `GET /api/admin/payments/transactions/filter` - Get filtered transactions (admin only)
 
 ## Frontend API config
 
-See `tailwind-react-frontend/src/services/api.js`:
+See [tailwind-react-frontend/src/services/api.js](tailwind-react-frontend/src/services/api.js):
 - Restaurant: `http://localhost:5000/api`
 - Auth: `http://localhost:5001/api/auth`
 - Order: `http://localhost:5005/api/orders`
 - Delivery: `http://localhost:5006/api`
 - Admin: `http://localhost:5050/api/admin`
+
+## Docker & Container Configuration
+
+### Dockerfile Structure
+
+Each backend service includes a `DockerFile` using Node.js Alpine Linux for minimal image size:
+
+**Example (auth_service/DockerFile):**
+```dockerfile
+FROM node:23-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 5001
+CMD ["npm","start","dev"]
+```
+
+**Key Features:**
+- Alpine Linux base for lightweight images (~150MB vs ~900MB with full Node.js)
+- Multi-line package installation for dependency management
+- Port exposure matching service defaults
+- Development-focused startup (npm start dev)
+
+### Docker Compose Configuration
+
+**File:** `backend/docker-compose.yml`
+
+**Services Defined:**
+- `restaurant-service` (Port 5000)
+- `order-service` (Port 5005)
+- `payment-service` (Port 5004)
+- `delivery-service` (Port 5006)
+- `auth-service` (Port 5001)
+- `admin-service` (Port 5050)
+
+**Features:**
+- Automatic builds from individual service Dockerfiles
+- Environment variable injection (PORT, MONGO_URI, JWT_SECRET, JWT_EXPIRES_IN)
+- Volume mounting for restaurant uploads (`./restaurant_service/public/uploads:/app/public/uploads`)
+- Container naming convention: `ds-assignment-<service-name>`
+
+**Environment Configuration Example (from compose):**
+```yaml
+environment:
+  - PORT=5000
+  - MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/database
+  - JWT_SECRET=yourSuperSecretKey
+  - JWT_EXPIRES_IN=1h
+```
+
+**Note:** MongoDB Atlas connection URIs are used; replace with your own credentials before production deployment.
+
+## Kubernetes Deployment Configuration
+
+Each service includes a Kubernetes deployment manifest (`*-deployment.yaml`):
+
+### Deployment Structure Example (auth-deployment.yaml)
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-deployment
+  labels:
+    app: auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth
+  template:
+    metadata:
+      labels:
+        app: auth
+    spec:
+      containers:
+        - name: auth
+          image: vikz642/auth_repo:v7
+          ports:
+            - containerPort: 5001
+          env:
+            - name: PORT
+              value: "5001"
+            - name: MONGO_URI
+              value: mongodb+srv://sm:mihi@cluster0.aslaq.mongodb.net/Finace_Tracker
+            - name: JWT_SECRET
+              value: yourSuperSecretKey
+            - name: JWT_EXPIRES_IN
+              value: 1h
+```
+
+### Deployment Files
+
+| Service | Deployment File | Image | Port |
+|---------|-----------------|-------|------|
+| Auth | `auth-deployment.yaml` | `vikz642/auth_repo:v7` | 5001 |
+| Order | `order-deployment.yaml` | `vikz642/ds_assignment:v2` | 5005 |
+| Restaurant | `restaurant-deployment.yaml` | - | 5000 |
+| Payment | `payment-deployment.yaml` | - | 5004 |
+| Delivery | `delivery-deployment.yaml` | - | 5006 |
+| Admin | `admin-deployment.yaml` | - | 5050 |
+
+**Deployment Process:**
+1. Each YAML file defines a single-replica deployment
+2. Services use pre-built Docker images from Docker Hub
+3. Environment variables are defined inline for configuration
+4. Container ports are exposed for service communication
+
+**To Deploy to Kubernetes:**
+```bash
+# Apply all deployments
+kubectl apply -f backend/auth_service/auth-deployment.yaml
+kubectl apply -f backend/order_service/order-deployment.yaml
+kubectl apply -f backend/restaurant_service/restaurant-deployment.yaml
+kubectl apply -f backend/payment_service/payment-deployment.yaml
+kubectl apply -f backend/delivery_service/delivery-deployment.yaml
+kubectl apply -f backend/admin_service/admin-deployment.yaml
+
+# Verify deployments
+kubectl get deployments
+kubectl get pods
+```
+
+## CI/CD Pipeline Configuration
+
+### Current Setup
+This project uses **Docker & Docker Compose** for containerization and can be integrated with CI/CD platforms. No dedicated CI/CD workflow files (GitHub Actions, GitLab CI, etc.) are currently present.
+
+### Recommended CI/CD Pipeline
+
+#### Option 1: GitHub Actions
+Create `.github/workflows/docker-build.yml`:
+```yaml
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [auth_service, restaurant_service, order_service, payment_service, delivery_service, admin_service]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build Docker image
+        run: |
+          cd backend/${{ matrix.service }}
+          docker build -t myregistry/${{ matrix.service }}:${{ github.sha }} .
+      
+      - name: Push to registry
+        run: |
+          docker push myregistry/${{ matrix.service }}:${{ github.sha }}
+      
+      - name: Run tests (optional)
+        run: |
+          cd backend/${{ matrix.service }}
+          npm test
+```
+
+#### Option 2: Docker Compose for Local Testing
+```bash
+# Test all services locally with Docker Compose
+cd backend
+docker-compose build
+docker-compose up --abort-on-container-exit
+```
+
+### Container Registry Configuration
+
+**For Kubernetes Deployments:**
+- Update image references in `*-deployment.yaml` files
+- Example: `image: myregistry/auth_repo:latest`
+- Current images use: `vikz642/auth_repo:v7`, `vikz642/ds_assignment:v2`
+
+**Registry Options:**
+- Docker Hub: `dockerhub_username/image_name:tag`
+- Azure Container Registry: `myregistry.azurecr.io/image_name:tag`
+- GitHub Container Registry: `ghcr.io/username/image_name:tag`
+
+### Build & Deploy Workflow
+
+**Local Testing:**
+```bash
+# Build all containers
+docker-compose -f backend/docker-compose.yml build
+
+# Run all services
+docker-compose -f backend/docker-compose.yml up -d
+
+# View logs
+docker-compose -f backend/docker-compose.yml logs -f
+```
+
+**Kubernetes Deployment:**
+```bash
+# Build and push images (per service)
+cd backend/auth_service
+docker build -t your-registry/auth_repo:v1 .
+docker push your-registry/auth_repo:v1
+
+# Update deployment YAML with new image
+kubectl set image deployment/auth-deployment auth=your-registry/auth_repo:v1
+
+# Apply updated deployments
+kubectl apply -f *-deployment.yaml
+```
 
 ## Real-time updates
 

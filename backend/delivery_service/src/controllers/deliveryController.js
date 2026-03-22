@@ -1,15 +1,16 @@
-// Merge the conflicting parts manually
 import mongoose from 'mongoose';
 import axios from 'axios';
 import Delivery from '../models/Delivery.js';
+import Driver from '../models/Driver.js';
 import { getIO } from '../socket.js';
-import jwt from 'jsonwebtoken';
+
+// Order service URL using Docker service name
+const ORDER_SERVICE_URL = process.env.ORDER_SERVICE_URL || 'http://ds-assignment-order-service:5005';
 
 // Create Delivery and Auto-Assign Driver
 export const createDelivery = async (req, res) => {
   try {
     const delivery = await Delivery.create(req.body);
-
     const availableDrivers = await Driver.find({ isAvailable: true });
 
     if (!availableDrivers.length) {
@@ -25,15 +26,19 @@ export const createDelivery = async (req, res) => {
     await assignedDriver.save();
 
     const io = getIO();
-    io.emit(`delivery-${delivery._id}-status`, { status: delivery.status });
+    io.to(`delivery-${delivery._id}`).emit('delivery-status-update', {
+      deliveryId: delivery._id,
+      status: delivery.status
+    });
 
     res.status(201).json({ message: 'Delivery created and driver assigned', delivery });
   } catch (err) {
+    console.error('[DELIVERY ERROR] createDelivery:', err.message);
     res.status(400).json({ message: err.message });
   }
 };
 
-// ✅ Confirm Checkout and Create Delivery
+// Confirm Checkout and Create Delivery
 export const confirmCheckout = async (req, res) => {
   try {
     const { orderId, address, phone, paymentMethod } = req.body;
@@ -42,11 +47,11 @@ export const confirmCheckout = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields (orderId, address, phone, paymentMethod)' });
     }
 
-    // 1. Fetch Order Details
-    const orderServiceURL = `http://localhost:5005/api/orders/${orderId}`;
-    const orderResponse = await axios.get(orderServiceURL, {
-      headers: { Authorization: req.headers.authorization }
-    });
+    // Single axios call with forwarded auth token — no localhost, uses Docker service name
+    const orderResponse = await axios.get(
+      `${ORDER_SERVICE_URL}/api/orders/${orderId}`,
+      { headers: { Authorization: req.headers.authorization } }
+    );
 
     const order = orderResponse.data;
 
@@ -54,10 +59,8 @@ export const confirmCheckout = async (req, res) => {
       return res.status(404).json({ message: 'Order not found or invalid data' });
     }
 
-    // 2. Assign a driver (hardcoded)
     const hardcodedDriverId = new mongoose.Types.ObjectId("680915643c8f937ea053f597");
 
-    // 3. Create Delivery
     const newDelivery = new Delivery({
       orderId: order._id,
       customerId: order.customerId,
@@ -71,44 +74,56 @@ export const confirmCheckout = async (req, res) => {
 
     const savedDelivery = await newDelivery.save();
 
-    // 4. Emit socket event (Assigned)
+    // Emit to room, not broadcast
     const io = getIO();
-    io.emit(`delivery-${savedDelivery._id}-status`, { status: savedDelivery.status });
-
-    res.status(201).json({
-      message: 'Delivery created and driver assigned',
-      delivery: savedDelivery
+    io.to(`delivery-${savedDelivery._id}`).emit('delivery-status-update', {
+      deliveryId: savedDelivery._id,
+      status: savedDelivery.status
     });
 
+    res.status(201).json({ message: 'Delivery created and driver assigned', delivery: savedDelivery });
+
   } catch (error) {
-    console.error('[DELIVERY ERROR] confirmCheckout:', error.message);
-    res.status(500).json({ message: 'Internal server error: ' + error.message });
+    console.error('[DELIVERY ERROR] confirmCheckout:', error?.message);
+    console.error('[DELIVERY ERROR] Stack:', error?.stack);
+    res.status(500).json({ message: error?.message || 'Internal server error' });
   }
 };
 
-// ✅ Update Delivery Status (Picked → Delivered)
+// Update Delivery Status
 export const updateStatus = async (req, res) => {
   try {
     const deliveryId = req.params.id;
     const { status } = req.body;
 
+    const allowedStatuses = ['pending', 'assigned', 'picked', 'delivered'];
+
     if (!status) {
       return res.status(400).json({ message: 'Status is required' });
     }
 
-    const updatedDelivery = await Delivery.findByIdAndUpdate(
-      deliveryId,
-      { status },
-      { new: true }
-    );
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: `Invalid status. Must be one of: ${allowedStatuses.join(', ')}` });
+    }
+
+    const updateData = {
+      status,
+      statusUpdatedAt: new Date(),
+      ...(status === 'delivered' ? { deliveredAt: new Date() } : {})
+    };
+
+    const updatedDelivery = await Delivery.findByIdAndUpdate(deliveryId, updateData, { new: true });
 
     if (!updatedDelivery) {
       return res.status(404).json({ message: 'Delivery not found' });
     }
 
-    // Emit socket for real-time status update
     const io = getIO();
-    io.emit(`delivery-${updatedDelivery._id}-status`, { status: updatedDelivery.status });
+    io.to(`delivery-${updatedDelivery._id}`).emit('delivery-status-update', {
+      deliveryId: updatedDelivery._id,
+      status: updatedDelivery.status,
+      timestamp: new Date()
+    });
 
     res.json(updatedDelivery);
 
@@ -118,32 +133,26 @@ export const updateStatus = async (req, res) => {
   }
 };
 
-// ✅ Get Currently Assigned Delivery (For Driver)
+// Get Currently Assigned Delivery (For Driver)
+// Uses req.user set by authenticate middleware — no need to re-decode JWT
 export const getAssignedDelivery = async (req, res) => {
   try {
-    // Get token from the authorization header
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ message: 'Authorization token required' });
+    const driverId = req.user.id || req.user._id;
+
+    if (!driverId) {
+      return res.status(401).json({ message: 'Could not determine driver ID from token' });
     }
-    
-    // Decode the token to get user data
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const driverId = decoded.id || decoded._id; // Depending on how you structured your token
 
     console.log(driverId, "Driver Id");
 
-    // Find deliveries assigned to this driver
     const deliveries = await Delivery.find({ deliveryPersonId: driverId });
-    
+
     if (!deliveries.length) {
       return res.status(404).json({ message: 'No deliveries assigned to this driver.' });
     }
-    
-    // Get delivery which is still active
+
     const activeDelivery = deliveries.find(d => ['assigned', 'picked'].includes(d.status));
-    
+
     if (activeDelivery) {
       return res.status(200).json(activeDelivery);
     } else {
@@ -151,20 +160,14 @@ export const getAssignedDelivery = async (req, res) => {
     }
   } catch (error) {
     console.error('[DELIVERY ERROR] getAssignedDelivery:', error.message);
-    
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ message: 'Invalid token' });
-    }
-    
     res.status(500).json({ message: 'Server error: ' + error.message });
   }
 };
 
-// ✅ Get All Deliveries Assigned to Driver
+// Get All Deliveries Assigned to Driver
 export const getDeliveriesByPerson = async (req, res) => {
   try {
     const hardcodedDriverId = new mongoose.Types.ObjectId("680915643c8f937ea053f597");
-
     const deliveries = await Delivery.find({ deliveryPersonId: hardcodedDriverId });
     res.status(200).json(deliveries);
   } catch (error) {
@@ -173,7 +176,7 @@ export const getDeliveriesByPerson = async (req, res) => {
   }
 };
 
-// ✅ Get Delivery by ID (For tracking page / customer side)
+// Get Delivery by ID
 export const getDeliveryById = async (req, res) => {
   try {
     const delivery = await Delivery.findById(req.params.id);

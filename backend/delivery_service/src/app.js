@@ -3,10 +3,10 @@ import http from 'http';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import { Server } from 'socket.io';
 import deliveryRoutes from './routes/deliveryRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 import { setupSocket } from './socket.js';
-import { Server } from 'socket.io';
 
 dotenv.config();
 
@@ -18,9 +18,14 @@ mongoose.connect(process.env.MONGO_URI)
 const app = express();
 const server = http.createServer(app);
 
-// CORS Configuration
+// CORS — allow both local dev and Docker frontend
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 const corsOptions = {
-  origin: 'http://localhost:5173', // Frontend origin
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -30,21 +35,21 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes
-app.use('/api/deliveries', deliveryRoutes); // ✅ Only deliveries
+app.use('/api/deliveries', deliveryRoutes);
 
 // Error Handler
 app.use(errorHandler);
 
-// Initialize WebSocket Server
+// Initialize WebSocket Server (single instance — passed to setupSocket)
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   }
 });
 
-// Setup WebSocket events
+// Setup WebSocket events using the shared io instance
 setupSocket(io);
 
 // Start Server

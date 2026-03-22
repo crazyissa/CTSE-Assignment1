@@ -1,27 +1,38 @@
 const axios = require('axios');
-const PAYMENT_SERVICE_URL = 'http://localhost:5004/api/payments';
+
+// ✅ Use Docker service name instead of localhost
+const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://ds-assignment-payment-service:5004/api/payments';
 
 // View all transactions
 const getAllTransactions = async (req, res) => {
   try {
-    const response = await axios.get(`${PAYMENT_SERVICE_URL}/admin/transactions`);
-    res.json(response.data); // ✅ Will include only transaction details (_id, amount, etc.)
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching transactions', error: err.message });
-  }
-};
+    const token = req.headers.authorization;
 
-// Filter transactions by date only (remove restaurantId and userId)
-const getFilteredTransactions = async (req, res) => {
-  const { startDate, endDate } = req.query; // ✅ Only use startDate, endDate
-
-  try {
-    const response = await axios.get(`${PAYMENT_SERVICE_URL}/admin/transactions/filter`, {
-      params: { startDate, endDate } // ✅ Send only these params
+    const response = await axios.get(`${PAYMENT_SERVICE_URL}/admin/transactions`, {
+      headers: { Authorization: token }
     });
     res.json(response.data);
   } catch (err) {
-    res.status(500).json({ message: 'Error filtering transactions', error: err.message });
+    console.error('Get All Transactions Error:', err.response?.data || err.message);
+    res.status(err.response?.status || 500).json({ message: 'Error fetching transactions', error: err.message });
+  }
+};
+
+// Filter transactions by date
+const getFilteredTransactions = async (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  try {
+    const token = req.headers.authorization;
+
+    const response = await axios.get(`${PAYMENT_SERVICE_URL}/admin/transactions/filter`, {
+      headers: { Authorization: token },
+      params: { startDate, endDate }
+    });
+    res.json(response.data);
+  } catch (err) {
+    console.error('Filter Transactions Error:', err.response?.data || err.message);
+    res.status(err.response?.status || 500).json({ message: 'Error filtering transactions', error: err.message });
   }
 };
 

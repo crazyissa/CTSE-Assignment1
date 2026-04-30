@@ -11,6 +11,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+//New code to check service health
+app.get("/health", (req, res) => {
+  res.json({ status: "Auth Service is running" });
+});
+
 app.use('/api/auth', authRoutes);
 
 mongoose.connect(process.env.MONGO_URI, {

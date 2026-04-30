@@ -18,6 +18,11 @@ mongoose.connect(process.env.MONGO_URI)
 const app = express();
 const server = http.createServer(app);
 
+//New code to check service health
+app.get("/health", (req, res) => {
+  res.json({ status: "Delivery Service is running" });
+});
+
 // CORS Configuration
 const corsOptions = {
   origin: 'http://localhost:5173', // Frontend origin

@@ -13,6 +13,11 @@ connectDB();
 
 const app = express();
 
+//New code to check service health
+app.get("/health", (req, res) => {
+  res.json({ status: "Order Service is running" });
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());

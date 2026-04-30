@@ -8,6 +8,11 @@ const cors = require('cors');
 const paymentRoutes = require('./routes/paymentRoutes');
 const app = express();
 
+//New code to check service health
+app.get("/health", (req, res) => {
+  res.json({ status: "Payment Service is running" });
+});
+
 app.use(cors());
 app.use(express.json());
 mongoose.connect(process.env.MONGO_URI)

@@ -9,6 +9,11 @@ dotenv.config();
 const app = express();
 connectDB();
 
+//New code to check service health
+app.get("/health", (req, res) => {
+  res.json({ status: "Admin Service is running" });
+});
+
 app.use(cors());
 app.use(express.json());
 app.use('/api/admin', adminRoutes);

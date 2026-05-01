@@ -12,6 +12,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+//New code to check service health
+app.get("/health", (req, res) => {
+  res.json({ status: "Restaurant Service is running" });
+});
+
 // Serve static images
 app.use('/public', express.static(path.join(__dirname, '../public')));
 

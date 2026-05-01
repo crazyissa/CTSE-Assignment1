@@ -1,7 +1,7 @@
 const axios = require('axios');
 
-const AUTH_SERVICE_URL = 'http://localhost:5001/api/auth'; // adjust to your auth_service port
-const RESTAURANT_SERVICE_URL = 'http://localhost:5000/api/restaurants'; // adjust to your restaurant_service port
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL;
+const RESTAURANT_SERVICE_URL = process.env.RESTAURANT_SERVICE_URL;
 
 // ✅ Verify a restaurant via REST call
 const verifyRestaurant = async (req, res) => {

@@ -14,7 +14,7 @@ L.Icon.Default.mergeOptions({
 });
 
 // Connect socket
-const socket = io('http://localhost:5006');
+const socket = io(import.meta.env.VITE_DELIVERY_API_BASE_URL.replace('/api', ''));
 
 const steps = ['pending', 'assigned', 'picked', 'delivered'];
 

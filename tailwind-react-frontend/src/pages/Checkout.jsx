@@ -102,7 +102,7 @@ export default function Checkout() {
       amount: totalAmount,
     };
 
-    const response = await fetch("http://localhost:5004/api/payments/test-checkout", {
+    const response = await fetch(`${import.meta.env.VITE_PAYMENT_API_BASE_URL}/test-checkout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

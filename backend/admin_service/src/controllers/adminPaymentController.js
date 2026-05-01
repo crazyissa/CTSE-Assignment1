@@ -1,5 +1,5 @@
 const axios = require('axios');
-const PAYMENT_SERVICE_URL = 'http://localhost:5004/api/payments';
+const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL;
 
 // View all transactions
 const getAllTransactions = async (req, res) => {

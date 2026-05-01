@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 
 // ✅ Connect to Delivery service WebSocket server
-const socket = io("http://localhost:5006");
+const socket = io(process.env.DELIVERY_SERVICE_URL);
 
 socket.on("connect", () => {
   console.log("✅ Connected to Socket.IO server");

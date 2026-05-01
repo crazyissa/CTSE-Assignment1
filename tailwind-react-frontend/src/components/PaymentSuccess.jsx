@@ -12,7 +12,7 @@ export default function PaymentSuccess() {
 
   useEffect(() => {
     if (confirmedDeliveryId) {
-      fetch("http://localhost:5004/api/payments/confirm", {
+      fetch(`${import.meta.env.VITE_PAYMENT_API_BASE_URL}/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: confirmedDeliveryId }) 

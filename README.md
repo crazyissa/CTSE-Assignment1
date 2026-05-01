@@ -104,7 +104,7 @@ docker compose up --build
 
 This uses the `backend/docker-compose.yml` configuration and binds ports:
 - 5000 restaurant
-- 5001 auth
+- 5002 auth
 - 5004 payment
 - 5005 order
 - 5006 delivery
@@ -153,7 +153,7 @@ Open http://localhost:5173
 
 See `tailwind-react-frontend/src/services/api.js`:
 - Restaurant: `http://localhost:5000/api`
-- Auth: `http://localhost:5001/api/auth`
+- Auth: `http://localhost:5002/api/auth`
 - Order: `http://localhost:5005/api/orders`
 - Delivery: `http://localhost:5006/api`
 - Admin: `http://localhost:5050/api/admin`

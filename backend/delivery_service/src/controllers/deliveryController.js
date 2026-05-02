@@ -49,43 +49,13 @@ export const confirmCheckout = async (req, res) => {
       });
     }
 
-    if (!process.env.ORDER_SERVICE_URL) {
-      console.log("ERROR: ORDER_SERVICE_URL is not set");
-      return res.status(500).json({
-        message: "ORDER_SERVICE_URL environment variable is missing"
-      });
-    }
-
-    const orderServiceURL = `${process.env.ORDER_SERVICE_URL}/${orderId}`;
-    console.log("Calling Order Service URL:", orderServiceURL);
-
-    let orderResponse;
-
-    try {
-      orderResponse = await axios.get(orderServiceURL, {
-        headers: {
-          Authorization: req.headers.authorization || ""
-        },
-        timeout: 10000
-      });
-
-      console.log("Order Service Status:", orderResponse.status);
-      console.log("Order Service Data:", orderResponse.data);
-    } catch (axiosError) {
-      console.log("ORDER SERVICE CALL FAILED");
-      console.log("Axios message:", axiosError.message);
-      console.log("Axios status:", axiosError.response?.status);
-      console.log("Axios data:", axiosError.response?.data);
-      console.log("Axios URL:", orderServiceURL);
-
-      return res.status(502).json({
-        message: "Failed to fetch order from order-service",
-        error: axiosError.message,
-        status: axiosError.response?.status,
-        data: axiosError.response?.data,
-        url: orderServiceURL
-      });
-    }
+    // 1. Fetch Order Details
+    
+    // const orderServiceURL = `http://localhost:5005/api/orders/${orderId}`;
+    const orderServiceURL = `https://order-service-bms0.onrender.com/api/orders/${orderId}`;
+    const orderResponse = await axios.get(orderServiceURL, {
+      headers: { Authorization: req.headers.authorization }
+    });
 
     const order = orderResponse.data;
 

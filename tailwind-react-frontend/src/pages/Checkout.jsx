@@ -102,7 +102,7 @@ export default function Checkout() {
       amount: totalAmount,
     };
 
-    const response = await fetch("http://localhost:5004/api/payments/test-checkout", {
+    const response = await fetch("https://payment-service-new-45c7.onrender.com/api/payments/test-checkout", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

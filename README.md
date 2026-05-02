@@ -152,10 +152,10 @@ Open http://localhost:5173
 ## Frontend API config
 
 See `tailwind-react-frontend/src/services/api.js`:
-- Restaurant: `http://localhost:5000/api`
+- Restaurant: `https://restaurant-service-new.onrender.com/api`
 - Auth: `http://localhost:5001/api/auth`
 - Order: `http://localhost:5005/api/orders`
-- Delivery: `http://localhost:5006/api`
+- Delivery: `https://delivery-service-new.onrender.com/api`
 - Admin: `http://localhost:5050/api/admin`
 
 ## Real-time updates

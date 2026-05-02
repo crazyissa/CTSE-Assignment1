@@ -12,7 +12,7 @@ export default function PaymentSuccess() {
 
   useEffect(() => {
     if (confirmedDeliveryId) {
-      fetch("http://localhost:5004/api/payments/confirm", {
+      fetch("https://payment-service-new-45c7.onrender.com/api/payments/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: confirmedDeliveryId }) 

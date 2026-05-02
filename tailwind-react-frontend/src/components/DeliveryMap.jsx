@@ -14,7 +14,7 @@ L.Icon.Default.mergeOptions({
 });
 
 // Connect socket
-const socket = io('http://localhost:5006');
+const socket = io('https://delivery-service-new.onrender.com');
 
 const steps = ['pending', 'assigned', 'picked', 'delivered'];
 

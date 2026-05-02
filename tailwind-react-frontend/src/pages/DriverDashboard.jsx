@@ -12,7 +12,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
-const socket = io('http://localhost:5006');
+const socket = io('https://delivery-service-new.onrender.com');
 
 const DriverDashboard = () => {
   const [delivery, setDelivery] = useState(null);

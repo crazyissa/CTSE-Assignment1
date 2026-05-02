@@ -35,3 +35,4 @@ router.delete('/users/:id', authenticate, requireRole('admin'), async (req, res)
 router.get('/drivers', authenticate, allowRoles(['admin', 'customer']), getAllDrivers);
 
 export default router;
+//sample efhee

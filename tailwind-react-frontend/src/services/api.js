@@ -10,7 +10,7 @@ const getAuthHeaders = () => {
 // RESTAURANT SERVICE (port 5000)
 // --------------------
 export const restaurantAPI = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'https://restaurant-service-new.onrender.com/api',
 });
 restaurantAPI.interceptors.request.use((config) => {
   config.headers = { ...config.headers, ...getAuthHeaders() };
@@ -18,7 +18,7 @@ restaurantAPI.interceptors.request.use((config) => {
 });
 
 // Search function
-const API_BASE_URL = 'http://localhost:5000/api/restaurants'; 
+const API_BASE_URL = 'https://restaurant-service-new.onrender.com/api/restaurants'; 
 export const searchRestaurants = async (query) => {
   const response = await fetch(`${API_BASE_URL}/search?query=${query}`, {
     headers: getAuthHeaders(),
@@ -30,14 +30,14 @@ export const searchRestaurants = async (query) => {
 // AUTH SERVICE (port 5001)
 // --------------------
 export const authAPI = axios.create({
-  baseURL: 'http://localhost:5001/api/auth',
+  baseURL: 'https://auth-service-new-v0qc.onrender.com/api/auth',
 });
 
 // --------------------
 // DELIVERY SERVICE (port 5003)
 // --------------------
 export const deliveryAPI = axios.create({
-  baseURL: 'http://localhost:5006/api',
+  baseURL: 'https://delivery-service-new.onrender.com/api',
 });
 deliveryAPI.interceptors.request.use((config) => {
   config.headers = { ...config.headers, ...getAuthHeaders() };
@@ -48,7 +48,7 @@ deliveryAPI.interceptors.request.use((config) => {
 // ORDER SERVICE (port 5005)
 // --------------------
 const orderAPI = axios.create({
-  baseURL: 'http://localhost:5005/api/orders',
+  baseURL: 'https://order-service-new-y0yc.onrender.com/api/orders',
 });
 orderAPI.interceptors.request.use((config) => {
   config.headers = { ...config.headers, ...getAuthHeaders() };
@@ -79,7 +79,7 @@ export const fetchOrderDetails = async (orderId) => {
 // ADMIN SERVICE (port 5050)
 // --------------------
 const adminAPI = axios.create({
-  baseURL: 'http://localhost:5050/api/admin',
+  baseURL: 'https://admin-service-new.onrender.com/api/admin',
 });
 adminAPI.interceptors.request.use((config) => {
   config.headers = { ...config.headers, ...getAuthHeaders() };
@@ -97,7 +97,7 @@ export const verifyRestaurant = async (id) => {
 };
 
 export const deleteOrder = async (orderId) => {
-  const res = await fetch(`http://localhost:5005/api/orders/${orderId}`, {
+  const res = await fetch(`https://order-service-new-y0yc.onrender.com/api/orders/${orderId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
@@ -105,7 +105,7 @@ export const deleteOrder = async (orderId) => {
 };
 
 export const editOrder = async (orderId, updatedData) => {
-  const res = await fetch(`http://localhost:5005/api/orders/${orderId}/edit`, {
+  const res = await fetch(`https://order-service-new-y0yc.onrender.com/api/orders/${orderId}/edit`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ export const editOrder = async (orderId, updatedData) => {
 // DELIVERY SERVICE EXTRAS (port 5006)
 // --------------------
 export const confirmCheckout = async (checkoutData) => {
-  const res = await fetch('http://localhost:5006/api/deliveries/checkout', {
+  const res = await fetch('https://delivery-service-new.onrender.com/api/deliveries/checkout', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ export const confirmCheckout = async (checkoutData) => {
 };
 
 export const fetchDeliveryDetails = async (deliveryId) => {
-  const res = await fetch(`http://localhost:5006/api/deliveries/${deliveryId}`, {
+  const res = await fetch(`https://delivery-service-new.onrender.com/api/deliveries/${deliveryId}`, {
     headers: getAuthHeaders(),
   });
   const data = await res.json();
@@ -140,7 +140,7 @@ export const fetchDeliveryDetails = async (deliveryId) => {
 };
 
 // Admin transactions
-const BASE_ADMIN_URL = 'http://localhost:5050/api/admin';
+const BASE_ADMIN_URL = 'https://admin-service-new.onrender.com/api/admin';
 
 export const fetchAllTransactions = async () => {
   const res = await fetch(`${BASE_ADMIN_URL}/payments/transactions`, {

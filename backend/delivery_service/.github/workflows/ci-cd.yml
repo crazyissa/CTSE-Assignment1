@@ -2,7 +2,7 @@ name: Delivery Service CI/CD
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main", "develop", "feature/*" ]
     paths:
       - 'backend/delivery_service/**'
       - '.github/workflows/delivery-ci-cd.yml'

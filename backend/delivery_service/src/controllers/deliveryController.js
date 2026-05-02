@@ -45,7 +45,7 @@ export const confirmCheckout = async (req, res) => {
     // 1. Fetch Order Details
     
     // const orderServiceURL = `http://localhost:5005/api/orders/${orderId}`;
-    const orderServiceURL = `https://order-service-bms0.onrender.com/api/orders/${orderId}`;
+    const orderServiceURL = `https://order-service-new-y0yc.onrender.com/api/orders/${orderId}`;
     const orderResponse = await axios.get(orderServiceURL, {
       headers: { Authorization: req.headers.authorization }
     });

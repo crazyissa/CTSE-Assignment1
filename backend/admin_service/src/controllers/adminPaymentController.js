@@ -1,5 +1,5 @@
 const axios = require('axios');
-const PAYMENT_SERVICE_URL = 'http://localhost:5004/api/payments';
+const PAYMENT_SERVICE_URL = 'https://payment-service-new-45c7.onrender.com'; // adjust to your payment_service port
 
 // View all transactions
 const getAllTransactions = async (req, res) => {

@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 
-const ORDER_SERVICE_URL = process.env.ORDER_SERVICE_URL || 'http://localhost:5005/api/orders';
+const ORDER_SERVICE_URL = process.env.ORDER_SERVICE_URL || 'https://order-service-new-y0yc.onrender.com/api/orders';
 
 
 const deleteImageFile = (imageUrl) => {

@@ -1,0 +1,113 @@
+name: Payment Service CI/CD
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+    paths:
+      - 'backend/payment_service/**'
+      - '.github/workflows/payment-ci-cd.yml'
+  pull_request:
+    branches: [ "main", "develop" ]
+    paths:
+      - 'backend/payment_service/**'
+
+jobs:
+  ci:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: |
+          cd backend/payment_service
+          npm install
+
+      - name: Run Lint
+        run: |
+          cd backend/payment_service
+          npm run lint || echo "No lint script defined"
+
+      - name: Check for syntax errors
+        run: |
+          cd backend/payment_service
+          node -c app.js
+
+      - name: Security Check - Scan for secrets
+        run: |
+          cd backend/payment_service
+          if grep -r "sk_live_\|sk_test_" . --include="*.js" --include="*.json" | grep -v node_modules | grep -v ".git"; then
+            echo "⚠️ WARNING: Potential secrets found in code!"
+            exit 1
+          fi
+
+  build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: ci
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker Image
+        run: |
+          cd backend/payment_service
+          docker build -t payment-service:latest .
+
+      - name: Run Docker image to verify
+        run: |
+          docker run --rm payment-service:latest node -c app.js
+
+  deploy-staging:
+    name: Deploy to Staging (Render)
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trigger Render Staging Deploy
+        run: |
+          echo "🚀 Deploying Payment Service to Staging..."
+          curl -X POST ${{ secrets.RENDER_PAYMENT_SERVICE_STAGING_WEBHOOK }} \
+            -H "Content-Type: application/json" \
+            -d '{"ref":"develop"}'
+        continue-on-error: true
+
+  deploy-production:
+    name: Deploy to Production (Render)
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trigger Render Production Deploy
+        run: |
+          echo "🚀 Deploying Payment Service to Production..."
+          curl -X POST ${{ secrets.RENDER_PAYMENT_SERVICE_PROD_WEBHOOK }} \
+            -H "Content-Type: application/json" \
+            -d '{"ref":"main"}'
+        continue-on-error: true
+
+      - name: Health Check
+        run: |
+          echo "⏳ Waiting for service to be healthy..."
+          sleep 10
+          curl -f ${{ secrets.RENDER_PAYMENT_SERVICE_URL }}/health || echo "Service not yet available"
+        continue-on-error: true

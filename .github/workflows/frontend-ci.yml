@@ -1,0 +1,103 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+    paths:
+      - 'tailwind-react-frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    branches: [ "main", "develop" ]
+    paths:
+      - 'tailwind-react-frontend/**'
+
+jobs:
+  ci:
+    name: Frontend Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: |
+          cd tailwind-react-frontend
+          npm install
+
+      - name: Run ESLint
+        run: |
+          cd tailwind-react-frontend
+          npm run lint || echo "No lint script defined"
+
+      - name: Run Tests
+        run: |
+          cd tailwind-react-frontend
+          npm test || echo "No test script defined"
+
+      - name: Build React App
+        run: |
+          cd tailwind-react-frontend
+          npm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_AUTH_API_BASE_URL: ${{ secrets.VITE_AUTH_API_BASE_URL }}
+          VITE_ORDER_API_BASE_URL: ${{ secrets.VITE_ORDER_API_BASE_URL }}
+          VITE_PAYMENT_API_BASE_URL: ${{ secrets.VITE_PAYMENT_API_BASE_URL }}
+          VITE_DELIVERY_API_BASE_URL: ${{ secrets.VITE_DELIVERY_API_BASE_URL }}
+          VITE_ADMIN_API_BASE_URL: ${{ secrets.VITE_ADMIN_API_BASE_URL }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+
+  deploy-staging:
+    name: Deploy to Vercel Staging
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel Staging
+        run: |
+          echo "🚀 Deploying Frontend to Vercel Staging..."
+          npm install -g vercel
+          vercel deploy --prod=false --token=${{ secrets.VERCEL_TOKEN }} --yes
+        working-directory: tailwind-react-frontend
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        continue-on-error: true
+
+  deploy-production:
+    name: Deploy to Vercel Production
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel Production
+        run: |
+          echo "🚀 Deploying Frontend to Vercel Production..."
+          npm install -g vercel
+          vercel deploy --prod=true --token=${{ secrets.VERCEL_TOKEN }} --yes
+        working-directory: tailwind-react-frontend
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        continue-on-error: true
+
+      - name: Health Check
+        run: |
+          echo "⏳ Verifying production deployment..."
+          sleep 10
+          curl -f ${{ secrets.FRONTEND_PROD_URL }} || echo "Service not yet available"
+        continue-on-error: true

@@ -7,9 +7,9 @@ services:
       dockerfile: DockerFile
     container_name: ds-assignment-restaurant-service
     ports:
-      - "5000:5000"
+      - "5080:5080"
     environment:
-      - PORT=5000
+      - PORT=5080
       - MONGO_URI=mongodb+srv://sm:mihi@cluster0.aslaq.mongodb.net/Finace_Tracker
       - JWT_SECRET=yourSuperSecretKey
       - JWT_EXPIRES_IN=1h
@@ -34,9 +34,9 @@ services:
       dockerfile: DockerFile
     container_name: ds-assignment-payment-service
     ports:
-      - "5004:5004"
+      - "5075:5075"
     environment:
-      - PORT=5004
+      - PORT=5075
       - MONGO_URI=mongodb+srv://vikummune123:VIk123abc@cluster1.2sye1.mongodb.net/order?retryWrites=true&w=majority&appName=Cluster1
       - JWT_SECRET=yourSuperSecretKey
       - JWT_EXPIRES_IN=1h
@@ -46,9 +46,9 @@ services:
       dockerfile: DockerFile
     container_name: ds-assignment-delivery-service
     ports:
-      - "5006:5006"
+      - "5070:5070"
     environment:
-      - PORT=5006
+      - PORT=5070
       - MONGO_URI=mongodb+srv://sm:mihi@cluster0.aslaq.mongodb.net/Finace_Tracker
       - JWT_SECRET=yourSuperSecretKey
       - JWT_EXPIRES_IN=1h
@@ -59,9 +59,9 @@ services:
       dockerfile: DockerFile
     container_name: ds-assignment-auth-service
     ports:
-      - "5001:5001"
+      - "5065:5065"
     environment:
-      - PORT=5001
+      - PORT=5065
       - MONGO_URI=mongodb+srv://vikummune123:VIk123abc@cluster1.2sye1.mongodb.net/order?retryWrites=true&w=majority&appName=Cluster1
       - JWT_SECRET=yourSuperSecretKey
       - JWT_EXPIRES_IN=1h
@@ -72,9 +72,9 @@ services:
       dockerfile: DockerFile
     container_name: ds-assignment-admin-service
     ports:
-      - "5050:5050"
+      - "5060:5060"
     environment:
-      - PORT=5050
+      - PORT=5060
       - MONGO_URI=mongodb+srv://vikummune123:VIk123abc@cluster1.2sye1.mongodb.net/order?retryWrites=true&w=majority&appName=Cluster1
       - JWT_SECRET=yourSuperSecretKey
       - JWT_EXPIRES_IN=1h

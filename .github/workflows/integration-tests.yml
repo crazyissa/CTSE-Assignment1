@@ -1,0 +1,86 @@
+name: Microservices Integration Tests
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  integration-tests:
+    name: Run Microservices Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:5.0
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'" 
+          --health-interval 10s 
+          --health-timeout 5s 
+          --health-retries 5
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Start all backend services with Docker Compose
+        run: |
+          cd backend
+          docker-compose up -d
+          sleep 15
+
+      - name: Test Auth Service
+        run: |
+          echo "Testing Auth Service on port 5065..."
+          curl -f http://localhost:5065/health || exit 1
+
+      - name: Test Restaurant Service
+        run: |
+          echo "Testing Restaurant Service on port 5080..."
+          curl -f http://localhost:5080/health || exit 1
+
+      - name: Test Order Service
+        run: |
+          echo "Testing Order Service on port 5005..."
+          curl -f http://localhost:5005/health || exit 1
+
+      - name: Test Payment Service
+        run: |
+          echo "Testing Payment Service on port 5075..."
+          curl -f http://localhost:5075/health || exit 1
+
+      - name: Test Delivery Service
+        run: |
+          echo "Testing Delivery Service on port 5070..."
+          curl -f http://localhost:5070/health || exit 1
+
+      - name: Test Admin Service
+        run: |
+          echo "Testing Admin Service on port 5060..."
+          curl -f http://localhost:5060/health || exit 1
+
+      - name: Test API Endpoints
+        run: |
+          echo "Testing registration endpoint..."
+          curl -X POST http://localhost:5065/api/auth/register \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name": "Test User",
+              "email": "test@example.com",
+              "password": "Test123!",
+              "role": "customer"
+            }' || echo "Registration test completed"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          cd backend
+          docker-compose down

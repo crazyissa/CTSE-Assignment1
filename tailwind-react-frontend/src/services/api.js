@@ -7,10 +7,10 @@ const getAuthHeaders = () => {
 };
 
 // --------------------
-// RESTAURANT SERVICE (port 5000)
+// RESTAURANT SERVICE (port 5080)
 // --------------------
 export const restaurantAPI = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'http://localhost:5080/api',
 });
 restaurantAPI.interceptors.request.use((config) => {
   config.headers = { ...config.headers, ...getAuthHeaders() };
@@ -18,7 +18,7 @@ restaurantAPI.interceptors.request.use((config) => {
 });
 
 // Search function
-const API_BASE_URL = 'http://localhost:5000/api/restaurants'; 
+const API_BASE_URL = 'http://localhost:5080/api/restaurants'; 
 export const searchRestaurants = async (query) => {
   const response = await fetch(`${API_BASE_URL}/search?query=${query}`, {
     headers: getAuthHeaders(),
@@ -27,17 +27,17 @@ export const searchRestaurants = async (query) => {
 };
 
 // --------------------
-// AUTH SERVICE (port 5001)
+// AUTH SERVICE (port 5065)
 // --------------------
 export const authAPI = axios.create({
-  baseURL: 'http://localhost:5001/api/auth',
+  baseURL: 'http://localhost:5065/api/auth',
 });
 
 // --------------------
-// DELIVERY SERVICE (port 5003)
+// DELIVERY SERVICE (port 5070)
 // --------------------
 export const deliveryAPI = axios.create({
-  baseURL: 'http://localhost:5006/api',
+  baseURL: 'http://localhost:5070/api',
 });
 deliveryAPI.interceptors.request.use((config) => {
   config.headers = { ...config.headers, ...getAuthHeaders() };
@@ -76,10 +76,10 @@ export const fetchOrderDetails = async (orderId) => {
 };
 
 // --------------------
-// ADMIN SERVICE (port 5050)
+// ADMIN SERVICE (port 5060)
 // --------------------
 const adminAPI = axios.create({
-  baseURL: 'http://localhost:5050/api/admin',
+  baseURL: 'http://localhost:5060/api/admin',
 });
 adminAPI.interceptors.request.use((config) => {
   config.headers = { ...config.headers, ...getAuthHeaders() };
@@ -117,10 +117,10 @@ export const editOrder = async (orderId, updatedData) => {
 };
 
 // --------------------
-// DELIVERY SERVICE EXTRAS (port 5006)
+// DELIVERY SERVICE EXTRAS (port 5070)
 // --------------------
 export const confirmCheckout = async (checkoutData) => {
-  const res = await fetch('http://localhost:5006/api/deliveries/checkout', {
+  const res = await fetch('http://localhost:5070/api/deliveries/checkout', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ export const confirmCheckout = async (checkoutData) => {
 };
 
 export const fetchDeliveryDetails = async (deliveryId) => {
-  const res = await fetch(`http://localhost:5006/api/deliveries/${deliveryId}`, {
+  const res = await fetch(`http://localhost:5070/api/deliveries/${deliveryId}`, {
     headers: getAuthHeaders(),
   });
   const data = await res.json();
@@ -140,7 +140,7 @@ export const fetchDeliveryDetails = async (deliveryId) => {
 };
 
 // Admin transactions
-const BASE_ADMIN_URL = 'http://localhost:5050/api/admin';
+const BASE_ADMIN_URL = 'http://localhost:5060/api/admin';
 
 export const fetchAllTransactions = async () => {
   const res = await fetch(`${BASE_ADMIN_URL}/payments/transactions`, {

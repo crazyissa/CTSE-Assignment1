@@ -33,31 +33,74 @@ export const createDelivery = async (req, res) => {
   }
 };
 
-// ✅ Confirm Checkout and Create Delivery
 export const confirmCheckout = async (req, res) => {
   try {
+    console.log("========== CONFIRM CHECKOUT START ==========");
+    console.log("REQ BODY:", req.body);
+    console.log("AUTH HEADER:", req.headers.authorization ? "Exists" : "Missing");
+    console.log("ORDER_SERVICE_URL:", process.env.ORDER_SERVICE_URL);
+
     const { orderId, address, phone, paymentMethod } = req.body;
 
     if (!orderId || !address || !phone || !paymentMethod) {
-      return res.status(400).json({ message: 'Missing required fields (orderId, address, phone, paymentMethod)' });
+      console.log("Missing fields:", { orderId, address, phone, paymentMethod });
+      return res.status(400).json({
+        message: "Missing required fields (orderId, address, phone, paymentMethod)"
+      });
     }
 
-    // 1. Fetch Order Details
+    if (!process.env.ORDER_SERVICE_URL) {
+      console.log("ERROR: ORDER_SERVICE_URL is not set");
+      return res.status(500).json({
+        message: "ORDER_SERVICE_URL environment variable is missing"
+      });
+    }
+
     const orderServiceURL = `${process.env.ORDER_SERVICE_URL}/${orderId}`;
-    const orderResponse = await axios.get(orderServiceURL, {
-      headers: { Authorization: req.headers.authorization }
-    });
+    console.log("Calling Order Service URL:", orderServiceURL);
+
+    let orderResponse;
+
+    try {
+      orderResponse = await axios.get(orderServiceURL, {
+        headers: {
+          Authorization: req.headers.authorization || ""
+        },
+        timeout: 10000
+      });
+
+      console.log("Order Service Status:", orderResponse.status);
+      console.log("Order Service Data:", orderResponse.data);
+    } catch (axiosError) {
+      console.log("ORDER SERVICE CALL FAILED");
+      console.log("Axios message:", axiosError.message);
+      console.log("Axios status:", axiosError.response?.status);
+      console.log("Axios data:", axiosError.response?.data);
+      console.log("Axios URL:", orderServiceURL);
+
+      return res.status(502).json({
+        message: "Failed to fetch order from order-service",
+        error: axiosError.message,
+        status: axiosError.response?.status,
+        data: axiosError.response?.data,
+        url: orderServiceURL
+      });
+    }
 
     const order = orderResponse.data;
 
+    console.log("Parsed order:", order);
+
     if (!order || !order.customerId || !order.restaurantId) {
-      return res.status(404).json({ message: 'Order not found or invalid data' });
+      console.log("Invalid order data:", order);
+      return res.status(404).json({
+        message: "Order not found or invalid data",
+        order
+      });
     }
 
-    // 2. Assign a driver (hardcoded)
     const hardcodedDriverId = new mongoose.Types.ObjectId("680915643c8f937ea053f597");
 
-    // 3. Create Delivery
     const newDelivery = new Delivery({
       orderId: order._id,
       customerId: order.customerId,
@@ -65,24 +108,43 @@ export const confirmCheckout = async (req, res) => {
       address,
       phone,
       paymentMethod,
-      status: 'assigned',
+      status: "assigned",
       deliveryPersonId: hardcodedDriverId,
     });
 
+    console.log("Saving delivery:", newDelivery);
+
     const savedDelivery = await newDelivery.save();
 
-    // 4. Emit socket event (Assigned)
-    const io = getIO();
-    io.emit(`delivery-${savedDelivery._id}-status`, { status: savedDelivery.status });
+    console.log("Delivery saved:", savedDelivery._id);
+
+    try {
+      const io = getIO();
+      io.emit(`delivery-${savedDelivery._id}-status`, {
+        status: savedDelivery.status
+      });
+      console.log("Socket event emitted");
+    } catch (socketError) {
+      console.log("Socket emit failed:", socketError.message);
+    }
+
+    console.log("========== CONFIRM CHECKOUT SUCCESS ==========");
 
     res.status(201).json({
-      message: 'Delivery created and driver assigned',
+      message: "Delivery created and driver assigned",
       delivery: savedDelivery
     });
 
   } catch (error) {
-    console.error('[DELIVERY ERROR] confirmCheckout:', error.message);
-    res.status(500).json({ message: 'Internal server error: ' + error.message });
+    console.log("========== CONFIRM CHECKOUT MAIN ERROR ==========");
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message
+    });
   }
 };
 

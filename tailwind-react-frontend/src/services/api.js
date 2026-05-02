@@ -10,7 +10,7 @@ const getAuthHeaders = () => {
 // RESTAURANT SERVICE (port 5000)
 // --------------------
 export const restaurantAPI = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_RESTAURANT_API_BASE_URL,
 });
 restaurantAPI.interceptors.request.use((config) => {
   config.headers = { ...config.headers, ...getAuthHeaders() };

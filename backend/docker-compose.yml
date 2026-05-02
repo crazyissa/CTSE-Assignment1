@@ -13,6 +13,7 @@ services:
       - MONGO_URI=mongodb+srv://sm:mihi@cluster0.aslaq.mongodb.net/Finace_Tracker
       - JWT_SECRET=yourSuperSecretKey
       - JWT_EXPIRES_IN=1h
+      - ORDER_SERVICE_URL=http://order-service:5005/api/orders
     volumes:
       - ./restaurant_service/public/uploads:/app/public/uploads
 
@@ -40,6 +41,7 @@ services:
       - MONGO_URI=mongodb+srv://vikummune123:VIk123abc@cluster1.2sye1.mongodb.net/order?retryWrites=true&w=majority&appName=Cluster1
       - JWT_SECRET=yourSuperSecretKey
       - JWT_EXPIRES_IN=1h
+      - FRONTEND_URL=http://localhost:5173
   delivery-service:
     build:
       context: ./delivery_service
@@ -52,6 +54,9 @@ services:
       - MONGO_URI=mongodb+srv://vikummune123:VIk123abc@cluster1.2sye1.mongodb.net/order?retryWrites=true&w=majority&appName=Cluster1
       - JWT_SECRET=yourSuperSecretKey
       - JWT_EXPIRES_IN=1h
+      - ORDER_SERVICE_URL=http://order-service:5005/api/orders
+      - FRONTEND_URL=http://localhost:5173
+      - DELIVERY_SERVICE_URL=http://delivery-service:5006
 
   auth-service:
     build:
@@ -59,9 +64,9 @@ services:
       dockerfile: DockerFile
     container_name: ds-assignment-auth-service
     ports:
-      - "5001:5001"
+      - "5002:5002"
     environment:
-      - PORT=5001
+      - PORT=5002
       - MONGO_URI=mongodb+srv://vikummune123:VIk123abc@cluster1.2sye1.mongodb.net/order?retryWrites=true&w=majority&appName=Cluster1
       - JWT_SECRET=yourSuperSecretKey
       - JWT_EXPIRES_IN=1h
@@ -78,8 +83,29 @@ services:
       - MONGO_URI=mongodb+srv://vikummune123:VIk123abc@cluster1.2sye1.mongodb.net/order?retryWrites=true&w=majority&appName=Cluster1
       - JWT_SECRET=yourSuperSecretKey
       - JWT_EXPIRES_IN=1h
+      - AUTH_SERVICE_URL=http://auth-service:5002/api/auth
+      - RESTAURANT_SERVICE_URL=http://restaurant-service:5000/api/restaurants
+      - PAYMENT_SERVICE_URL=http://payment-service:5004/api/payments
 
-
-
-# Remove mongo service because you're using MongoDB Atlas
-# Remove volumes section unless you use it elsewhere
+  frontend:
+    build:
+      context: ../tailwind-react-frontend
+      dockerfile: Dockerfile
+    container_name: ds-assignment-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:5000/api
+      - VITE_RESTAURANT_API_BASE_URL=http://localhost:5000/api/restaurants
+      - VITE_AUTH_API_BASE_URL=http://localhost:5002/api/auth
+      - VITE_DELIVERY_API_BASE_URL=http://localhost:5006/api
+      - VITE_ORDER_API_BASE_URL=http://localhost:5005/api/orders
+      - VITE_ADMIN_API_BASE_URL=http://localhost:5050/api/admin
+      - VITE_PAYMENT_API_BASE_URL=http://localhost:5004/api/payments
+    depends_on:
+      - restaurant-service
+      - auth-service
+      - order-service
+      - payment-service
+      - delivery-service
+      - admin-service
